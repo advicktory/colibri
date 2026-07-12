@@ -9,10 +9,16 @@ ifeq ($(UNAME_S),Darwin)
 # (brew install libomp), altrimenti compila single-thread (i pragma omp sono ignorati).
 # Niente -march: su arm64 NEON e' baseline (i kernel __ARM_NEON si attivano da soli).
 CC      = clang
-OMPDIR := $(shell brew --prefix libomp 2>/dev/null)
+OMPDIR ?= $(shell brew --prefix libomp 2>/dev/null)
 ifneq ($(OMPDIR),)
+  ifneq ($(wildcard $(OMPDIR)/lib/libomp.*),)
 OMPC    = -Xclang -fopenmp -I$(OMPDIR)/include
 OMPL    = -L$(OMPDIR)/lib -lomp
+  else
+$(warning libomp not found at $(OMPDIR): building single-threaded. For multithreading: brew install libomp)
+OMPC    =
+OMPL    =
+  endif
 else
 $(warning libomp not found: building single-threaded. For multithreading: brew install libomp)
 OMPC    =
