@@ -2,7 +2,7 @@
   description = "colibrì — run GLM-5.2 (744B MoE) on a consumer machine with ~25 GB RAM";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -24,19 +24,20 @@
           version = "1.0";
           src = ./.;
 
-          nativeBuildInputs = [ pkgs.makeWrapper ];
+          nativeBuildInputs = [ pkgs.makeWrapper pkgs.gcc ]
+            ++ pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.llvmPackages.openmp;
 
-          buildInputs = [
-            pkgs.gcc
-            pkgs.gmp
-          ];
+          buildInputs = pkgs.lib.optional pkgs.stdenv.isLinux pkgs.gmp;
 
           # Use x86-64-v3 (AVX2) for a portable binary; override with ARCH=native for local builds
-          ARCH = "x86-64-v3";
+          ARCH = if pkgs.stdenv.isDarwin then "native" else "x86-64-v3";
 
-          buildPhase = ''
+          buildPhase = let
+            makeArgs = pkgs.lib.optionalString pkgs.stdenv.isDarwin
+              "OMPDIR=${pkgs.llvmPackages.openmp}";
+          in ''
             runHook preBuild
-            make -C c glm ARCH="$ARCH"
+            make -C c glm ARCH="$ARCH" ${makeArgs}
             runHook postBuild
           '';
 
@@ -71,7 +72,7 @@
             description = "Run GLM-5.2 (744B MoE) on a consumer machine with ~25 GB RAM";
             homepage = "https://github.com/JustVugg/colibri";
             license = licenses.asl20;
-            platforms = platforms.linux;
+            platforms = platforms.linux ++ platforms.darwin;
             mainProgram = "glm";
           };
         };
@@ -100,9 +101,9 @@
             pythonEnv
             pkgs.gcc
             pkgs.gnumake
-            pkgs.clang-tools          # clangd / clang-tidy for IDE support
             pkgs.pkg-config
-          ];
+          ] ++ pkgs.lib.optional pkgs.stdenv.isLinux pkgs.clang-tools
+            ++ pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.llvmPackages.openmp;
 
           shellHook = ''
             echo "🐦 colibrì dev shell"
@@ -110,8 +111,11 @@
             echo "  python: $(python3 --version)"
             echo ""
             echo "Build the engine:   make -C c glm"
+            ${pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+            echo "  (on macOS: make -C c glm OMPDIR=${pkgs.llvmPackages.openmp})"
+            ''}
             echo "Run the converter:  python c/coli convert --model /path/to/glm52_i4"
-            echo "Chat:               COLI_MODEL=/path/to/glm52_i4 ./c/glm ..."
+            echo "Chat:               COLI_MODEL=/path/to/glm52_i4 ./result/bin/glm"
           '';
         };
       }
