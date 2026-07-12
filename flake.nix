@@ -12,16 +12,9 @@
         pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
         # Python with the packages needed by the offline converter tools
-        # Use CUDA-enabled torch on Linux where CUDA is available
-        torchPkg = if pkgs.stdenv.isLinux && pkgs.cudaPackages_12 ? cuda_nvcc
-          then (pkgs.python3Packages.torch.override {
-            cudaSupport = true;
-            cudaPackages = pkgs.cudaPackages_12;
-          })
-          else pkgs.python3Packages.torch;
-
+        # torch-bin provides pre-built CUDA wheels on Linux (no source build)
         pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-          torchPkg
+          (if pkgs.stdenv.isLinux then torch-bin else torch)
           safetensors
           transformers
           huggingface-hub
