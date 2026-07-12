@@ -95,6 +95,7 @@
 
           buildInputs = [ pkgs.gcc pkgs.gmp ];
 
+          # CUDA_HOME only used for nvcc detection; Nix stdenv handles linking via nativeBuildInputs
           CUDA_HOME = "${pkgs.cudaPackages.cuda_nvcc}";
           ARCH = "x86-64-v3";
 
