@@ -9,7 +9,7 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
         # Python with the packages needed by the offline converter tools
         pythonEnv = pkgs.python3.withPackages (ps: with ps; [
@@ -149,16 +149,25 @@
             pythonEnv
             pkgs.gcc
             pkgs.gnumake
-            pkgs.clang-tools          # clangd / clang-tidy for IDE support
             pkgs.pkg-config
-          ];
+          ] ++ pkgs.lib.optional pkgs.stdenv.isLinux pkgs.clang-tools
+            ++ pkgs.lib.optionals (pkgs.stdenv.isLinux && pkgs.cudaPackages ? cuda_nvcc) (
+              with pkgs.cudaPackages; [ cuda_nvcc cuda_cudart libcublas ]
+            );
 
           shellHook = ''
             echo "🐦 colibrì dev shell"
             echo "  gcc: $(gcc --version | head -1)"
             echo "  python: $(python3 --version)"
-            echo ""
-            echo "Build the engine:   make -C c glm"
+            if [ -n "$(which nvcc 2>/dev/null)" ]; then
+              echo "  cuda:  $(nvcc --version | grep release)"
+              echo ""
+              echo "Build the CUDA engine:  make -C c glm CUDA=1"
+              echo "Test CUDA kernels:      make -C c cuda-test CUDA_ARCH=native"
+            else
+              echo ""
+              echo "Build the engine:  make -C c glm"
+            fi
             echo "Run the converter:  python c/coli convert --model /path/to/glm52_i4"
             echo "Chat:               COLI_MODEL=/path/to/glm52_i4 ./c/glm ..."
           '';
