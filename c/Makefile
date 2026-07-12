@@ -69,7 +69,7 @@ ifneq ($(IS_WIN),)
 $(error CUDA=1 on Windows requires G1: build coli_cuda.dll with MSVC+nvcc (see PORT_WINDOWS_PLAN.md §8))
 endif
 CFLAGS   += -DCOLI_CUDA
-LDFLAGS  += -L$(CUDA_HOME)/lib64 -Wl,-rpath,$(CUDA_HOME)/lib64 -lcudart -lstdc++
+LDFLAGS  += $(if $(wildcard $(CUDA_HOME)/lib64),-L$(CUDA_HOME)/lib64 -Wl,-rpath,$(CUDA_HOME)/lib64,) -lcudart -lstdc++
 CUDA_OBJ  = backend_cuda.o
 endif
 

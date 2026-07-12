@@ -160,6 +160,8 @@
             echo "  gcc: $(gcc --version | head -1)"
             echo "  python: $(python3 --version)"
             if [ -n "$(which nvcc 2>/dev/null)" ]; then
+              export CUDA_HOME="$(dirname $(dirname $(which nvcc)))"
+              export NVCC="$(which nvcc)"
               echo "  cuda:  $(nvcc --version | grep release)"
               echo ""
               echo "Build the CUDA engine:  make -C c glm CUDA=1"
