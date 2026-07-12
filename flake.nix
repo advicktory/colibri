@@ -91,12 +91,12 @@
           src = ./.;
 
           nativeBuildInputs = [ pkgs.makeWrapper ]
-            ++ (with pkgs.cudaPackages; [ cuda_nvcc cuda_cudart libcublas ]);
+            ++ (with pkgs.cudaPackages_13; [ cuda_nvcc cuda_cudart ]);
 
           buildInputs = [ pkgs.gcc pkgs.gmp ];
 
           # CUDA_HOME only used for nvcc detection; Nix stdenv handles linking via nativeBuildInputs
-          CUDA_HOME = "${pkgs.cudaPackages.cuda_nvcc}";
+          CUDA_HOME = "${pkgs.cudaPackages_13.cuda_nvcc}";
           ARCH = "x86-64-v3";
 
           buildPhase = ''
@@ -152,8 +152,8 @@
             pkgs.gnumake
             pkgs.pkg-config
           ] ++ pkgs.lib.optional pkgs.stdenv.isLinux pkgs.clang-tools
-            ++ pkgs.lib.optionals (pkgs.stdenv.isLinux && pkgs.cudaPackages ? cuda_nvcc) (
-              with pkgs.cudaPackages; [ cuda_nvcc cuda_cudart libcublas ]
+            ++ pkgs.lib.optionals (pkgs.stdenv.isLinux && pkgs.cudaPackages_13 ? cuda_nvcc) (
+              with pkgs.cudaPackages_13; [ cuda_nvcc cuda_cudart ]
             );
 
           shellHook = ''
