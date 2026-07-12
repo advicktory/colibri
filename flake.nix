@@ -81,6 +81,54 @@
         packages = {
           default = colibri;
           inherit colibri;
+        } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          cuda = colibri-cuda;
+        };
+
+        colibri-cuda = pkgs.stdenv.mkDerivation {
+          pname = "colibri-cuda";
+          version = "1.0";
+          src = ./.;
+
+          nativeBuildInputs = [ pkgs.makeWrapper ]
+            ++ (with pkgs.cudaPackages; [ cuda_nvcc cuda_cudart libcublas ]);
+
+          buildInputs = [ pkgs.gcc pkgs.gmp ];
+
+          CUDA_HOME = "${pkgs.cudaPackages.cuda_nvcc}";
+          ARCH = "x86-64-v3";
+
+          buildPhase = ''
+            runHook preBuild
+            make -C c glm CUDA=1 CUDA_HOME="$CUDA_HOME" ARCH="$ARCH"
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin
+            cp c/glm $out/bin/glm
+
+            mkdir -p $out/share/colibri
+            cp c/coli $out/share/colibri/coli
+            chmod +x $out/share/colibri/coli
+            cp -r c/tools $out/share/colibri/tools
+
+            makeWrapper ${pythonEnv}/bin/python $out/bin/coli \
+              --add-flags "$out/share/colibri/coli" \
+              --set PYTHONPATH "${pythonEnv}/${pkgs.python3.sitePackages}"
+            runHook postInstall
+          '';
+
+          doCheck = false;  # CUDA tests need a GPU at runtime
+
+          meta = with pkgs.lib; {
+            description = "colibrì with CUDA expert tier";
+            homepage = "https://github.com/JustVugg/colibri";
+            license = licenses.asl20;
+            platforms = platforms.linux;
+            mainProgram = "glm";
+          };
         };
 
         apps = {
